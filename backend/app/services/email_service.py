@@ -1,24 +1,39 @@
+import httpx
 import structlog
 from app.core.config import get_settings
 
 settings = get_settings()
 log = structlog.get_logger()
 
+MANDRILL_SEND_URL = "https://mandrillapp.com/api/1.0/messages/send"
+
 
 def _send(to: str, subject: str, html: str) -> None:
-    if not settings.resend_api_key:
-        log.warning("email.skipped", reason="no resend api key configured", to=to, subject=subject)
+    if not settings.mandrill_api_key:
+        log.warning("email.skipped", reason="no mandrill api key configured", to=to, subject=subject)
         return
     try:
-        import resend
-        resend.api_key = settings.resend_api_key
-        resend.Emails.send({
-            "from": settings.email_from,
-            "to": to,
-            "subject": subject,
-            "html": html,
-        })
-        log.info("email.sent", to=to, subject=subject)
+        response = httpx.post(
+            MANDRILL_SEND_URL,
+            json={
+                "key": settings.mandrill_api_key,
+                "message": {
+                    "html": html,
+                    "subject": subject,
+                    "from_email": settings.email_from,
+                    "from_name": "SnapDrop",
+                    "to": [{"email": to, "type": "to"}],
+                },
+            },
+            timeout=10,
+        )
+        response.raise_for_status()
+        result = response.json()
+        status = result[0].get("status") if result else "unknown"
+        if status in ("sent", "queued", "scheduled"):
+            log.info("email.sent", to=to, subject=subject, status=status)
+        else:
+            log.error("email.rejected", to=to, subject=subject, result=result)
     except Exception as exc:
         log.error("email.failed", to=to, subject=subject, error=str(exc))
 

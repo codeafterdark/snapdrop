@@ -22,7 +22,6 @@ dependencies = [
     "Pillow>=10.3.0",
     "python-multipart>=0.0.9",
     "apscheduler>=3.10.4",
-    "resend>=0.8.0",
     "slowapi>=0.1.9",
     "structlog>=24.1.0",
     "greenlet>=3.0.3",
