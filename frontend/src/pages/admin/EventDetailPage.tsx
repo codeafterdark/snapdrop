@@ -94,7 +94,7 @@ export function EventDetailPage() {
 
         {/* Actions */}
         <div className="flex gap-3 flex-wrap">
-          <Button onClick={handleDownloadZip} loading={downloading} disabled={!photosData?.total || capExceeded}>
+          <Button onClick={handleDownloadZip} loading={downloading} disabled={!photosData?.total || !!capExceeded}>
             Download all photos (ZIP)
           </Button>
         </div>
