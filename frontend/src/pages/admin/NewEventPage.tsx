@@ -20,6 +20,7 @@ export function NewEventPage() {
   const [description, setDescription] = useState("");
   const [startsAt, setStartsAt] = useState(toLocalDatetimeValue(now));
   const [endsAt, setEndsAt] = useState(toLocalDatetimeValue(addDays(now, 1)));
+  const [attendeeCap, setAttendeeCap] = useState(50);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [createdEvent, setCreatedEvent] = useState<Awaited<ReturnType<typeof eventsApi.create>> | null>(null);
@@ -47,6 +48,7 @@ export function NewEventPage() {
         description: description.trim() || undefined,
         starts_at: new Date(startsAt).toISOString(),
         ends_at: new Date(endsAt).toISOString(),
+        attendee_cap: attendeeCap,
       });
       qc.invalidateQueries({ queryKey: ["events"] });
       setCreatedEvent(event);
@@ -116,6 +118,19 @@ export function NewEventPage() {
               />
               {errors.endsAt && <p className="text-red-600 text-xs mt-1">{errors.endsAt}</p>}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Attendee Limit</label>
+            <select
+              value={attendeeCap}
+              onChange={(e) => setAttendeeCap(Number(e.target.value))}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+            >
+              {[20, 50, 100, 150, 200].map((n) => (
+                <option key={n} value={n}>{n} attendees</option>
+              ))}
+            </select>
           </div>
 
           <p className="text-xs text-gray-400">Max event duration: 14 days. Photos deleted 30 days after event end.</p>

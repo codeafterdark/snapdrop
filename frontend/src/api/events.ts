@@ -5,6 +5,7 @@ export interface EventCreate {
   description?: string;
   starts_at: string;
   ends_at: string;
+  attendee_cap: number;
 }
 
 export interface EventPublic {

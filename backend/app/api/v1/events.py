@@ -84,7 +84,6 @@ async def list_events(
 
 @router.post("", response_model=EventPublic, status_code=status.HTTP_201_CREATED)
 async def create_event(body: EventCreate, current_user: CurrentUser, db: DB):
-    cap = settings.plan_caps.get(current_user.plan, 5)
     slug = f"evt-{uuid.uuid4().hex[:12]}"
 
     event = Event(
@@ -94,7 +93,7 @@ async def create_event(body: EventCreate, current_user: CurrentUser, db: DB):
         description=body.description,
         starts_at=body.starts_at,
         ends_at=body.ends_at,
-        attendee_cap=cap if cap is not None else 999_999,
+        attendee_cap=body.attendee_cap,
         delete_after=body.ends_at + timedelta(days=settings.photo_retention_days),
     )
     db.add(event)

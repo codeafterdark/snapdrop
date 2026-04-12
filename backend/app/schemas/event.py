@@ -3,11 +3,22 @@ from datetime import datetime
 from pydantic import BaseModel, field_validator, model_validator
 
 
+ALLOWED_CAPS = {20, 50, 100, 150, 200}
+
+
 class EventCreate(BaseModel):
     name: str
     description: str | None = None
     starts_at: datetime
     ends_at: datetime
+    attendee_cap: int = 50
+
+    @field_validator("attendee_cap")
+    @classmethod
+    def validate_cap(cls, v: int) -> int:
+        if v not in ALLOWED_CAPS:
+            raise ValueError(f"Attendee cap must be one of {sorted(ALLOWED_CAPS)}")
+        return v
 
     @model_validator(mode="after")
     def validate_dates(self) -> "EventCreate":
