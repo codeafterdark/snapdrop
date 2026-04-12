@@ -1,6 +1,5 @@
 import io
 import qrcode
-from qrcode.image.pure import PyPNGImage
 
 from app.core.config import get_settings
 from app.services import r2_service
@@ -24,9 +23,9 @@ def generate_and_store_qr(event_slug: str) -> str:
     qr.add_data(join_url)
     qr.make(fit=True)
 
-    img = qr.make_image(image_factory=PyPNGImage)
+    img = qr.make_image(fill_color="black", back_color="white")
     buf = io.BytesIO()
-    img.save(buf)
+    img.save(buf, format="PNG")
     png_bytes = buf.getvalue()
 
     r2_key = f"qr/{event_slug}.png"
