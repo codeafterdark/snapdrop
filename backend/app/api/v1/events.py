@@ -100,8 +100,12 @@ async def create_event(body: EventCreate, current_user: CurrentUser, db: DB):
     db.add(event)
     await db.flush()  # get event.id before generating QR
 
-    qr_key = qr_service.generate_and_store_qr(slug)
-    event.qr_code_r2_key = qr_key
+    try:
+        qr_key = qr_service.generate_and_store_qr(slug)
+        event.qr_code_r2_key = qr_key
+    except Exception as exc:
+        import structlog
+        structlog.get_logger().warning("qr_generation_failed", slug=slug, error=str(exc))
 
     await db.commit()
     await db.refresh(event)
