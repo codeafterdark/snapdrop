@@ -33,13 +33,10 @@ export function useAuth() {
   const signInWithGoogle = () =>
     supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/admin/dashboard` } });
 
-  const signInWithMicrosoft = () =>
-    supabase.auth.signInWithOAuth({ provider: "azure", options: { redirectTo: `${window.location.origin}/admin/dashboard` } });
-
   const signInWithApple = () =>
     supabase.auth.signInWithOAuth({ provider: "apple", options: { redirectTo: `${window.location.origin}/admin/dashboard` } });
 
   const signOut = () => supabase.auth.signOut().then(() => clear());
 
-  return { session, profile, loading, signInWithGoogle, signInWithMicrosoft, signInWithApple, signOut };
+  return { session, profile, loading, signInWithGoogle, signInWithApple, signOut };
 }
