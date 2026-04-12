@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # Supabase
     supabase_url: str
     supabase_anon_key: str
-    supabase_jwt_secret: str  # found in Supabase project Settings → API → JWT Secret
+    supabase_jwt_secret: str = ""  # only needed for legacy HS256 tokens
 
     # Cloudflare R2
     r2_account_id: str
