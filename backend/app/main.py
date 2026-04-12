@@ -8,9 +8,12 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
+from sqlalchemy import text
+
 from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
+from app.db.session import AsyncSessionLocal
 from app.tasks.scheduler import setup_scheduler
 
 settings = get_settings()
@@ -23,6 +26,13 @@ limiter = Limiter(key_func=get_remote_address)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info("startup", environment=settings.environment)
+    try:
+        async with AsyncSessionLocal() as db:
+            await db.execute(text("SELECT 1"))
+        log.info("db.connected")
+    except Exception as e:
+        log.error("db.connection_failed", error=str(e))
+        raise
     setup_scheduler()
     yield
     log.info("shutdown")
