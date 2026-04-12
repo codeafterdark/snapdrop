@@ -1,10 +1,10 @@
 import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { useAuthStore } from "@/stores/authStore";
+import { useAuth } from "@/hooks/useAuth";
 import { Spinner } from "./Spinner";
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { session, loading } = useAuthStore();
+  const { session, loading } = useAuth();
 
   if (loading) {
     return (
