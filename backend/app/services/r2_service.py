@@ -33,8 +33,8 @@ def generate_presigned_put(r2_key: str, mime_type: str, expires_in: int = 3600) 
     return url
 
 
-def generate_presigned_get(r2_key: str, expires_in: int = 900) -> str:
-    """Generate a presigned GET URL for secure photo access (15-min TTL default)."""
+def generate_presigned_get(r2_key: str, expires_in: int = 43200) -> str:
+    """Generate a presigned GET URL for secure photo access (12-hour TTL default)."""
     client = _get_client()
     url = client.generate_presigned_url(
         "get_object",
