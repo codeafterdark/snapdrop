@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
 
     # Feature flags
-    max_photo_size_bytes: int = 10 * 1024 * 1024  # 10 MB
+    max_photo_size_bytes: int = 500 * 1024 * 1024  # 500 MB
     max_event_duration_days: int = 14
     photo_retention_days: int = 30
     deletion_warning_days: int = 7  # warn at 30 - 7 = day 23

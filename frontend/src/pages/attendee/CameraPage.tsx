@@ -5,7 +5,7 @@ import { useAttendeeStore } from "@/stores/attendeeStore";
 import { eventsApi } from "@/api/events";
 import { photosApi } from "@/api/photos";
 import { Spinner } from "@/components/common/Spinner";
-import { ALLOWED_MIME_TYPES, MAX_PHOTO_SIZE_BYTES } from "@/lib/constants";
+import { ALLOWED_MIME_TYPES, MAX_PHOTO_SIZE_BYTES, MAX_VIDEO_SIZE_BYTES, VIDEO_MIME_TYPES } from "@/lib/constants";
 
 type PhotoStatus = "pending" | "uploading" | "done" | "error";
 
@@ -16,6 +16,7 @@ interface QueueItem {
   name: string;
   mimeType: string;
   status: PhotoStatus;
+  progress: number;
 }
 
 export function CameraPage() {
@@ -50,7 +51,9 @@ export function CameraPage() {
     const newItems: QueueItem[] = [];
     for (const file of files) {
       if (!ALLOWED_MIME_TYPES.includes(file.type)) continue;
-      if (file.size > MAX_PHOTO_SIZE_BYTES) continue;
+      const isVideo = VIDEO_MIME_TYPES.includes(file.type);
+      const sizeLimit = isVideo ? MAX_VIDEO_SIZE_BYTES : MAX_PHOTO_SIZE_BYTES;
+      if (file.size > sizeLimit) continue;
       newItems.push({
         id: crypto.randomUUID(),
         file,
@@ -58,6 +61,7 @@ export function CameraPage() {
         name: file.name,
         mimeType: file.type,
         status: "pending",
+        progress: 0,
       });
     }
     setQueue((prev) => [...prev, ...newItems]);
@@ -69,21 +73,23 @@ export function CameraPage() {
     setProcessing(true);
     const pending = queue.filter((p) => p.status === "pending");
     for (const item of pending) {
-      setQueue((prev) => prev.map((p) => p.id === item.id ? { ...p, status: "uploading" } : p));
+      setQueue((prev) => prev.map((p) => p.id === item.id ? { ...p, status: "uploading", progress: 0 } : p));
       try {
         const { upload_url, r2_key } = await photosApi.requestUploadUrl(event.id, token, {
           name: item.name,
           size: item.file.size,
           type: item.mimeType,
         });
-        await photosApi.uploadToR2(upload_url, item.file, item.mimeType);
+        await photosApi.uploadToR2(upload_url, item.file, item.mimeType, (pct) => {
+          setQueue((prev) => prev.map((p) => p.id === item.id ? { ...p, progress: pct } : p));
+        });
         await photosApi.confirmUpload(event.id, token, {
           r2_key,
           file_name: item.name,
           file_size_bytes: item.file.size,
           mime_type: item.mimeType,
         });
-        setQueue((prev) => prev.map((p) => p.id === item.id ? { ...p, status: "done" } : p));
+        setQueue((prev) => prev.map((p) => p.id === item.id ? { ...p, status: "done", progress: 100 } : p));
       } catch (err: any) {
         setQueue((prev) => prev.map((p) => p.id === item.id ? { ...p, status: "error" } : p));
       }
@@ -92,7 +98,7 @@ export function CameraPage() {
   };
 
   const retryFailed = () => {
-    setQueue((prev) => prev.map((p) => p.status === "error" ? { ...p, status: "pending" } : p));
+    setQueue((prev) => prev.map((p) => p.status === "error" ? { ...p, status: "pending", progress: 0 } : p));
   };
 
   if (!displayName) return null;
@@ -152,6 +158,13 @@ export function CameraPage() {
                 {item.status === "uploading" && (
                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                     <Spinner size="sm" />
+                    {/* Progress bar */}
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+                      <div
+                        className="h-full bg-brand-500 transition-all duration-200"
+                        style={{ width: `${item.progress}%` }}
+                      />
+                    </div>
                   </div>
                 )}
                 {item.status === "done" && (
@@ -229,7 +242,7 @@ export function CameraPage() {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm"
         multiple
         className="hidden"
         onChange={handleFileSelect}

@@ -10,6 +10,7 @@ export interface PhotoPublic {
   uploaded_at: string;
   attendee_name: string;
   attendee_id: string;
+  mime_type: string;
 }
 
 export interface UploadUrlResponse {
@@ -48,8 +49,13 @@ export const photosApi = {
       })
       .then((r) => r.data),
 
-  uploadToR2: (uploadUrl: string, blob: Blob, mimeType: string) =>
-    axios.put(uploadUrl, blob, { headers: { "Content-Type": mimeType } }),
+  uploadToR2: (uploadUrl: string, blob: Blob, mimeType: string, onProgress?: (pct: number) => void) =>
+    axios.put(uploadUrl, blob, {
+      headers: { "Content-Type": mimeType },
+      onUploadProgress: (e) => {
+        if (onProgress && e.total) onProgress(Math.round((e.loaded / e.total) * 100));
+      },
+    }),
 
   delete: (photoId: string) =>
     apiClient.delete(`/api/v1/photos/${photoId}`),

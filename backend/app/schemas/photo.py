@@ -3,7 +3,10 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
-ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
+ALLOWED_MIME_TYPES = {
+    "image/jpeg", "image/png", "image/webp",
+    "video/mp4", "video/quicktime", "video/webm",
+}
 
 
 class UploadUrlRequest(BaseModel):
@@ -40,6 +43,7 @@ class PhotoPublic(BaseModel):
     uploaded_at: datetime
     attendee_name: str
     attendee_id: uuid.UUID
+    mime_type: str
 
     model_config = {"from_attributes": True}
 

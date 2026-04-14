@@ -18,7 +18,7 @@ def _get_client():
     )
 
 
-def generate_presigned_put(r2_key: str, mime_type: str, expires_in: int = 300) -> str:
+def generate_presigned_put(r2_key: str, mime_type: str, expires_in: int = 3600) -> str:
     """Generate a presigned PUT URL for direct client upload to R2."""
     client = _get_client()
     url = client.generate_presigned_url(

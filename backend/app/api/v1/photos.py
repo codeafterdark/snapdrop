@@ -88,8 +88,8 @@ async def request_upload_url(
     photo_uuid = uuid.uuid4()
     r2_key = f"events/{event_id}/photos/{attendee.id}/{photo_uuid}"
 
-    upload_url = r2_service.generate_presigned_put(r2_key, body.mime_type)
-    return UploadUrlResponse(upload_url=upload_url, r2_key=r2_key)
+    upload_url = r2_service.generate_presigned_put(r2_key, body.mime_type, expires_in=3600)
+    return UploadUrlResponse(upload_url=upload_url, r2_key=r2_key, expires_in=3600)
 
 
 # ── Attendee: confirm upload ────────────────────────────────────────────────────
@@ -149,6 +149,7 @@ async def confirm_upload(
         uploaded_at=photo.uploaded_at,
         attendee_name=attendee.display_name,
         attendee_id=attendee.id,
+        mime_type=photo.mime_type,
     )
 
 
@@ -204,6 +205,7 @@ async def list_photos(
             uploaded_at=p.uploaded_at,
             attendee_name=p.attendee.display_name,
             attendee_id=p.attendee_id,
+            mime_type=p.mime_type,
         )
         for p in photos
     ]
