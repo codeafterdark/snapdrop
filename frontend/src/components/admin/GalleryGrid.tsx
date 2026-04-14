@@ -34,12 +34,32 @@ export function GalleryGrid({ photos, eventId }: GalleryGridProps) {
     setSelected(new Set());
   };
 
-  const shareToFacebook = () => {
+  const sharePhotos = async () => {
     const selectedPhotos = photos.filter((p) => selected.has(p.id) && !isVideo(p.mime_type));
     if (!selectedPhotos.length) {
-      toast.error("No photos selected (videos cannot be shared to Facebook)");
+      toast.error("No photos selected (videos cannot be shared)");
       return;
     }
+
+    // Mobile / iOS: call navigator.share immediately (must be synchronous with the tap gesture)
+    // Any async work (e.g. fetching blobs) before this call causes iOS to reject it as a stale gesture
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: "Event Photos",
+          url: selectedPhotos[0].signed_url,
+        });
+        if (selectedPhotos.length > 1) {
+          toast("Select and share remaining photos one at a time", { duration: 4000 });
+        }
+      } catch (err: any) {
+        if (err.name !== "AbortError") toast.error("Could not open share sheet");
+      }
+      exitSelectMode();
+      return;
+    }
+
+    // Desktop: open Facebook share dialog for each selected photo
     if (selectedPhotos.length > 5) {
       toast.error("Select up to 5 photos to share");
       return;
@@ -48,7 +68,7 @@ export function GalleryGrid({ photos, eventId }: GalleryGridProps) {
       window.open(
         `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(photo.signed_url)}`,
         "_blank",
-        "width=600,height=500,noopener,noreferrer"
+        "noopener,noreferrer"
       );
     });
     exitSelectMode();
@@ -96,13 +116,13 @@ export function GalleryGrid({ photos, eventId }: GalleryGridProps) {
             <div className="flex items-center gap-2">
               {selectedImages.length > 0 && (
                 <button
-                  onClick={shareToFacebook}
+                  onClick={sharePhotos}
                   className="flex items-center gap-1.5 bg-[#1877F2] hover:bg-[#166fe5] text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                   </svg>
-                  Share to Facebook
+                  Share
                 </button>
               )}
               <button
