@@ -18,6 +18,41 @@ export function GalleryGrid({ photos, eventId }: GalleryGridProps) {
   const [deleteTarget, setDeleteTarget] = useState<PhotoPublic | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [lightbox, setLightbox] = useState<PhotoPublic | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelected(new Set());
+  };
+
+  const shareToFacebook = () => {
+    const selectedPhotos = photos.filter((p) => selected.has(p.id) && !isVideo(p.mime_type));
+    if (!selectedPhotos.length) {
+      toast.error("No photos selected (videos cannot be shared to Facebook)");
+      return;
+    }
+    if (selectedPhotos.length > 5) {
+      toast.error("Select up to 5 photos to share");
+      return;
+    }
+    selectedPhotos.forEach((photo) => {
+      window.open(
+        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(photo.signed_url)}`,
+        "_blank",
+        "width=600,height=500,noopener,noreferrer"
+      );
+    });
+    exitSelectMode();
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -47,54 +82,123 @@ export function GalleryGrid({ photos, eventId }: GalleryGridProps) {
     );
   }
 
+  const selectedImages = photos.filter((p) => selected.has(p.id) && !isVideo(p.mime_type));
+
   return (
     <>
+      {/* Toolbar */}
+      <div className="flex items-center justify-between mb-3">
+        {selectMode ? (
+          <>
+            <span className="text-sm text-gray-600">
+              {selected.size === 0 ? "Tap photos to select" : `${selected.size} selected`}
+            </span>
+            <div className="flex items-center gap-2">
+              {selectedImages.length > 0 && (
+                <button
+                  onClick={shareToFacebook}
+                  className="flex items-center gap-1.5 bg-[#1877F2] hover:bg-[#166fe5] text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                  </svg>
+                  Share to Facebook
+                </button>
+              )}
+              <button
+                onClick={exitSelectMode}
+                className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200"
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        ) : (
+          <button
+            onClick={() => setSelectMode(true)}
+            className="ml-auto text-sm text-brand-600 hover:text-brand-700 font-medium px-3 py-1.5 rounded-lg border border-brand-200 hover:border-brand-300 transition-colors"
+          >
+            Select
+          </button>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-        {photos.map((photo) => (
-          <div key={photo.id} className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100">
-            {isVideo(photo.mime_type) ? (
-              <>
-                <video
+        {photos.map((photo) => {
+          const isSelected = selected.has(photo.id);
+          return (
+            <div
+              key={photo.id}
+              className={`group relative aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer ${isSelected ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+              onClick={() => {
+                if (selectMode) {
+                  toggleSelect(photo.id);
+                } else {
+                  setLightbox(photo);
+                }
+              }}
+            >
+              {isVideo(photo.mime_type) ? (
+                <>
+                  <video
+                    src={photo.signed_url}
+                    preload="metadata"
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Play button overlay */}
+                  {!selectMode && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <img
                   src={photo.signed_url}
-                  preload="metadata"
-                  className="w-full h-full object-cover cursor-pointer"
-                  onClick={() => setLightbox(photo)}
+                  alt={`Photo by ${photo.attendee_name}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
                 />
-                {/* Play button overlay */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
+              )}
+
+              {/* Selection checkbox */}
+              {selectMode && (
+                <div className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? "bg-blue-500 border-blue-500" : "bg-black/30 border-white"}`}>
+                  {isSelected && (
+                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
+                  )}
+                </div>
+              )}
+
+              {/* Hover overlay (only when not in select mode) */}
+              {!selectMode && (
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex flex-col justify-end p-2">
+                  <div className="translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200">
+                    <p className="text-white text-xs font-medium truncate">{photo.attendee_name}</p>
+                    <p className="text-white/70 text-xs">{formatDateTime(photo.uploaded_at)}</p>
                   </div>
                 </div>
-              </>
-            ) : (
-              <img
-                src={photo.signed_url}
-                alt={`Photo by ${photo.attendee_name}`}
-                className="w-full h-full object-cover cursor-pointer"
-                onClick={() => setLightbox(photo)}
-                loading="lazy"
-              />
-            )}
-            {/* Hover overlay */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex flex-col justify-end p-2">
-              <div className="translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200">
-                <p className="text-white text-xs font-medium truncate">{photo.attendee_name}</p>
-                <p className="text-white/70 text-xs">{formatDateTime(photo.uploaded_at)}</p>
-              </div>
+              )}
+
+              {/* Delete button (only when not in select mode) */}
+              {!selectMode && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setDeleteTarget(photo); }}
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm"
+                  aria-label="Delete photo"
+                >
+                  ✕
+                </button>
+              )}
             </div>
-            {/* Delete button */}
-            <button
-              onClick={() => setDeleteTarget(photo)}
-              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm"
-              aria-label="Delete photo"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Delete confirmation */}
