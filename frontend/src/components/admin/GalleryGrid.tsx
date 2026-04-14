@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { PhotoPublic, photosApi } from "@/api/photos";
 import { formatDateTime } from "@/lib/utils";
 import { Button } from "@/components/common/Button";
@@ -20,11 +20,29 @@ export function GalleryGrid({ photos, eventId }: GalleryGridProps) {
   const [lightbox, setLightbox] = useState<PhotoPublic | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Pre-fetched image blobs keyed by photo id — populated on selection so they're
+  // ready instantly when the user taps Share (navigator.share must be called
+  // synchronously with the tap gesture; any await before it kills iOS sharing)
+  const blobCache = useRef<Map<string, File>>(new Map());
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+        // Kick off a background fetch so the file is ready when Share is tapped
+        const photo = photos.find((p) => p.id === id);
+        if (photo && !isVideo(photo.mime_type) && !blobCache.current.has(id)) {
+          fetch(photo.signed_url)
+            .then((res) => res.blob())
+            .then((blob) => {
+              blobCache.current.set(id, new File([blob], photo.file_name || "photo.jpg", { type: blob.type }));
+            })
+            .catch(() => { /* CORS not configured for GET — will fall back to URL share */ });
+        }
+      }
       return next;
     });
   };
@@ -32,6 +50,7 @@ export function GalleryGrid({ photos, eventId }: GalleryGridProps) {
   const exitSelectMode = () => {
     setSelectMode(false);
     setSelected(new Set());
+    blobCache.current.clear();
   };
 
   const sharePhotos = async () => {
@@ -41,16 +60,28 @@ export function GalleryGrid({ photos, eventId }: GalleryGridProps) {
       return;
     }
 
-    // Mobile / iOS: call navigator.share immediately (must be synchronous with the tap gesture)
-    // Any async work (e.g. fetching blobs) before this call causes iOS to reject it as a stale gesture
+    // Mobile / iOS: use native share sheet
+    // IMPORTANT: navigator.share must be called synchronously with the tap gesture.
+    // Pre-fetched blobs (from toggleSelect) are used so no awaiting is needed here.
     if (typeof navigator.share === "function") {
+      const files = selectedPhotos
+        .slice(0, 5)
+        .map((p) => blobCache.current.get(p.id))
+        .filter((f): f is File => !!f);
+
       try {
-        await navigator.share({
-          title: "Event Photos",
-          url: selectedPhotos[0].signed_url,
-        });
-        if (selectedPhotos.length > 1) {
-          toast("Select and share remaining photos one at a time", { duration: 4000 });
+        if (files.length > 0 && navigator.canShare?.({ files })) {
+          // Share actual image files → appears as a photo in Facebook/Messages/etc.
+          await navigator.share({ files, title: "Event Photos" });
+        } else {
+          // Blobs not ready yet (selected < 1s ago) or CORS blocked — fall back to URL
+          await navigator.share({ url: selectedPhotos[0].signed_url, title: "Event Photos" });
+          if (files.length === 0) {
+            toast("Tip: wait a moment after selecting before tapping Share for best results", { duration: 5000 });
+          }
+        }
+        if (selectedPhotos.length > 1 && files.length <= 1) {
+          toast("Share remaining photos one at a time", { duration: 4000 });
         }
       } catch (err: any) {
         if (err.name !== "AbortError") toast.error("Could not open share sheet");
