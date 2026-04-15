@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.api.deps import CurrentUser, DB, get_attendee_from_device_token
 from app.core.config import get_settings
 from app.models.attendee import Attendee
+from app.models.collaborator import EventCollaborator
 from app.models.event import Event
 from app.models.photo import Photo
 from app.schemas.common import PaginatedResponse
@@ -25,6 +26,29 @@ from typing import Annotated
 
 settings = get_settings()
 router = APIRouter(tags=["photos"])
+
+
+async def _get_event_with_access(event_id: uuid.UUID, current_user, db) -> Event:
+    """Return event if current_user is owner or accepted collaborator. Raises 404 otherwise."""
+    result = await db.execute(
+        select(Event).where(Event.id == event_id).where(Event.owner_id == current_user.id)
+    )
+    event = result.scalar_one_or_none()
+    if event:
+        return event
+
+    result = await db.execute(
+        select(Event)
+        .join(EventCollaborator, EventCollaborator.event_id == Event.id)
+        .where(Event.id == event_id)
+        .where(EventCollaborator.user_id == current_user.id)
+        .where(EventCollaborator.status == "accepted")
+    )
+    event = result.scalar_one_or_none()
+    if event:
+        return event
+
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
 
 
 def _check_event_window(event: Event) -> None:
@@ -163,12 +187,7 @@ async def list_photos(
     page: int = Query(1, ge=1),
     page_size: int = Query(30, ge=1, le=100),
 ):
-    event_result = await db.execute(
-        select(Event).where(Event.id == event_id).where(Event.owner_id == current_user.id)
-    )
-    event = event_result.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+    event = await _get_event_with_access(event_id, current_user, db)
 
     # Check attendee cap before showing gallery
     cap_result = await db.execute(
@@ -224,8 +243,8 @@ async def delete_photo(photo_id: uuid.UUID, current_user: CurrentUser, db: DB):
     photo = result.scalar_one_or_none()
     if not photo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found")
-    if photo.event.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    # Verify user has access to the event this photo belongs to
+    await _get_event_with_access(photo.event_id, current_user, db)
 
     r2_service.delete_object(photo.r2_key)
     photo.deleted_at = datetime.now(timezone.utc)
@@ -236,12 +255,7 @@ async def delete_photo(photo_id: uuid.UUID, current_user: CurrentUser, db: DB):
 
 @router.get("/events/{event_id}/photos/zip")
 async def download_photos_zip(event_id: uuid.UUID, current_user: CurrentUser, db: DB):
-    event_result = await db.execute(
-        select(Event).where(Event.id == event_id).where(Event.owner_id == current_user.id)
-    )
-    event = event_result.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+    event = await _get_event_with_access(event_id, current_user, db)
 
     # Check retention: if delete_after has passed, photos are gone
     if event.delete_after and datetime.now(timezone.utc) > event.delete_after:

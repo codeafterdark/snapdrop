@@ -19,6 +19,7 @@ export interface EventPublic {
   qr_code_url?: string;
   join_url: string;
   created_at: string;
+  is_owner: boolean;
 }
 
 export interface EventListItem {
@@ -30,6 +31,7 @@ export interface EventListItem {
   attendee_cap: number;
   status: "upcoming" | "active" | "closed";
   created_at: string;
+  is_owner: boolean;
 }
 
 export interface EventStats {
@@ -74,4 +76,7 @@ export const eventsApi = {
 
   getPublicBySlug: (slug: string) =>
     apiClient.get<AttendeeEventView>(`/api/v1/events/public/${slug}`).then((r) => r.data),
+
+  listShared: () =>
+    apiClient.get<EventListItem[]>("/api/v1/events/shared").then((r) => r.data),
 };

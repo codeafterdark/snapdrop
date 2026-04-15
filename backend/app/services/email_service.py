@@ -50,6 +50,26 @@ def send_event_ended(admin_email: str, event_name: str, event_id: str, deletion_
     _send(admin_email, subject, html)
 
 
+def send_invite_email(to_email: str, inviter_name: str, event_name: str, invite_token: str) -> None:
+    from app.core.config import get_settings
+    frontend_url = get_settings().frontend_url
+    accept_link = f"{frontend_url}/admin/invite/{invite_token}"
+    subject = f"{inviter_name} invited you to manage '{event_name}' on SnapDrop"
+    html = f"""
+    <h2>You've been invited as a co-admin</h2>
+    <p><strong>{inviter_name}</strong> has invited you to help manage the event
+    <strong>{event_name}</strong> on SnapDrop.</p>
+    <p>As a co-admin you can view the photo gallery, download all photos, and delete individual photos.</p>
+    <p style="margin: 24px 0;">
+      <a href="{accept_link}" style="background:#7c3aed;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">
+        Accept Invite
+      </a>
+    </p>
+    <p style="color:#888;font-size:12px;">If you weren't expecting this, you can safely ignore this email.</p>
+    """
+    _send(to_email, subject, html)
+
+
 def send_deletion_warning(admin_email: str, event_name: str, event_id: str, deletion_date: str) -> None:
     subject = f"Action required: photos from '{event_name}' will be deleted in 7 days"
     html = f"""

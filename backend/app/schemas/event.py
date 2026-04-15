@@ -46,6 +46,7 @@ class EventPublic(BaseModel):
     qr_code_url: str | None
     join_url: str
     created_at: datetime
+    is_owner: bool = True  # False when accessed as a collaborator
 
     model_config = {"from_attributes": True}
 
@@ -59,6 +60,7 @@ class EventListItem(BaseModel):
     attendee_cap: int
     status: str  # upcoming | active | closed
     created_at: datetime
+    is_owner: bool = True  # False for events shared with the user
 
     model_config = {"from_attributes": True}
 

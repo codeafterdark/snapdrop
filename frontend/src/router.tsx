@@ -3,6 +3,7 @@ import { LoginPage } from "@/pages/admin/LoginPage";
 import { DashboardPage } from "@/pages/admin/DashboardPage";
 import { NewEventPage } from "@/pages/admin/NewEventPage";
 import { EventDetailPage } from "@/pages/admin/EventDetailPage";
+import { InviteAcceptPage } from "@/pages/admin/InviteAcceptPage";
 import { JoinPage } from "@/pages/attendee/JoinPage";
 import { CameraPage } from "@/pages/attendee/CameraPage";
 import { ThankYouPage } from "@/pages/attendee/ThankYouPage";
@@ -25,6 +26,8 @@ export const router = createBrowserRouter([
     path: "/admin/events/:eventId",
     element: <ProtectedRoute><EventDetailPage /></ProtectedRoute>,
   },
+  // Invite accept — public page (handles auth itself)
+  { path: "/admin/invite/:token", element: <InviteAcceptPage /> },
 
   // Attendee routes (public)
   { path: "/e/:slug", element: <JoinPage /> },

@@ -10,6 +10,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.event import Event
+    from app.models.collaborator import EventCollaborator
 
 
 class User(Base):
@@ -34,3 +35,8 @@ class User(Base):
     )
 
     events: Mapped[list["Event"]] = relationship("Event", back_populates="owner", cascade="all, delete-orphan")
+    collaborations: Mapped[list["EventCollaborator"]] = relationship(
+        "EventCollaborator",
+        foreign_keys="EventCollaborator.user_id",
+        back_populates="user",
+    )

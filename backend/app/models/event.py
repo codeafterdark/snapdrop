@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.models.user import User
     from app.models.attendee import Attendee
     from app.models.photo import Photo
+    from app.models.collaborator import EventCollaborator
 
 
 class Event(Base):
@@ -41,3 +42,6 @@ class Event(Base):
     owner: Mapped["User"] = relationship("User", back_populates="events")
     attendees: Mapped[list["Attendee"]] = relationship("Attendee", back_populates="event", cascade="all, delete-orphan")
     photos: Mapped[list["Photo"]] = relationship("Photo", back_populates="event", cascade="all, delete-orphan")
+    collaborators: Mapped[list["EventCollaborator"]] = relationship(
+        "EventCollaborator", back_populates="event", cascade="all, delete-orphan"
+    )

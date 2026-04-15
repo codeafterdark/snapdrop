@@ -9,9 +9,15 @@ import { Spinner } from "@/components/common/Spinner";
 export function DashboardPage() {
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
+
   const { data, isLoading } = useQuery({
     queryKey: ["events"],
     queryFn: () => eventsApi.list(),
+  });
+
+  const { data: sharedEvents, isLoading: sharedLoading } = useQuery({
+    queryKey: ["events-shared"],
+    queryFn: () => eventsApi.listShared(),
   });
 
   return (
@@ -36,31 +42,46 @@ export function DashboardPage() {
       </header>
 
       {/* Content */}
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">My Events</h1>
-          <Button onClick={() => navigate("/admin/events/new")}>
-            + New Event
-          </Button>
-        </div>
+      <main className="max-w-4xl mx-auto px-4 py-8 space-y-10">
+        {/* My Events */}
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">My Events</h1>
+            <Button onClick={() => navigate("/admin/events/new")}>+ New Event</Button>
+          </div>
 
-        {isLoading ? (
-          <div className="flex justify-center py-20"><Spinner size="lg" /></div>
-        ) : !data?.items.length ? (
-          <div className="text-center py-20">
-            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
+          {isLoading ? (
+            <div className="flex justify-center py-20"><Spinner size="lg" /></div>
+          ) : !data?.items.length ? (
+            <div className="text-center py-20">
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-gray-700 font-medium mb-2">No events yet</h3>
+              <p className="text-gray-400 text-sm mb-6">Create your first event to start collecting photos.</p>
+              <Button onClick={() => navigate("/admin/events/new")}>Create first event</Button>
             </div>
-            <h3 className="text-gray-700 font-medium mb-2">No events yet</h3>
-            <p className="text-gray-400 text-sm mb-6">Create your first event to start collecting photos.</p>
-            <Button onClick={() => navigate("/admin/events/new")}>Create first event</Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {data.items.map((event) => <EventCard key={event.id} event={event} />)}
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {data.items.map((event) => <EventCard key={event.id} event={event} />)}
+            </div>
+          )}
+        </section>
+
+        {/* Shared with me */}
+        {(sharedLoading || (sharedEvents && sharedEvents.length > 0)) && (
+          <section>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Shared with me</h2>
+            {sharedLoading ? (
+              <div className="flex justify-center py-8"><Spinner /></div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {sharedEvents!.map((event) => <EventCard key={event.id} event={event} />)}
+              </div>
+            )}
+          </section>
         )}
       </main>
     </div>
