@@ -103,12 +103,12 @@ export function InviteAcceptPage() {
               Sign in to accept this invite
             </p>
             <OAuthButton
-              onClick={signInWithGoogle}
+              onClick={() => signInWithGoogle(window.location.href)}
               icon={<GoogleIcon />}
               label="Continue with Google"
             />
             <OAuthButton
-              onClick={signInWithApple}
+              onClick={() => signInWithApple(window.location.href)}
               icon={<AppleIcon />}
               label="Continue with Apple"
             />

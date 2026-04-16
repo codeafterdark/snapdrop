@@ -30,11 +30,17 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signInWithGoogle = () =>
-    supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/admin/dashboard` } });
+  const signInWithGoogle = (redirectTo?: string) =>
+    supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: redirectTo ?? `${window.location.origin}/admin/dashboard` },
+    });
 
-  const signInWithApple = () =>
-    supabase.auth.signInWithOAuth({ provider: "apple", options: { redirectTo: `${window.location.origin}/admin/dashboard` } });
+  const signInWithApple = (redirectTo?: string) =>
+    supabase.auth.signInWithOAuth({
+      provider: "apple",
+      options: { redirectTo: redirectTo ?? `${window.location.origin}/admin/dashboard` },
+    });
 
   const signOut = () => supabase.auth.signOut().then(() => clear());
 
