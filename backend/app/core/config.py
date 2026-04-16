@@ -25,8 +25,9 @@ class Settings(BaseSettings):
     r2_bucket_name: str
     r2_public_url: str  # public bucket base URL for QR codes (if bucket is public)
 
-    # Email (Mandrill)
-    mandrill_api_key: str = ""
+    # Email (Mailgun)
+    mailgun_api_key: str = ""
+    mailgun_domain: str = ""  # e.g. mg.replaymemories.com
     email_from: str = "noreply@snapdrop.app"
 
     # Frontend
