@@ -1,14 +1,19 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { eventsApi } from "@/api/events";
+import { collaboratorsApi } from "@/api/collaborators";
 import { useAuth } from "@/hooks/useAuth";
 import { EventCard } from "@/components/admin/EventCard";
 import { Button } from "@/components/common/Button";
 import { Spinner } from "@/components/common/Spinner";
+import toast from "react-hot-toast";
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
+  const queryClient = useQueryClient();
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["events"],
@@ -19,6 +24,25 @@ export function DashboardPage() {
     queryKey: ["events-shared"],
     queryFn: () => eventsApi.listShared(),
   });
+
+  const { data: pendingInvites } = useQuery({
+    queryKey: ["invites-pending"],
+    queryFn: () => collaboratorsApi.listPending(),
+  });
+
+  const handleAcceptInvite = async (token: string, inviteId: string) => {
+    setAcceptingId(inviteId);
+    try {
+      await collaboratorsApi.acceptInvite(token);
+      toast.success("Invite accepted!");
+      queryClient.invalidateQueries({ queryKey: ["invites-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["events-shared"] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail ?? "Failed to accept invite");
+    } finally {
+      setAcceptingId(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -43,6 +67,35 @@ export function DashboardPage() {
 
       {/* Content */}
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-10">
+        {/* Pending Invitations */}
+        {pendingInvites && pendingInvites.length > 0 && (
+          <section>
+            <h2 className="text-lg font-bold text-gray-900 mb-3">Pending Invitations</h2>
+            <div className="space-y-3">
+              {pendingInvites.map((invite) => (
+                <div
+                  key={invite.id}
+                  className="bg-brand-50 border border-brand-200 rounded-2xl px-5 py-4 flex items-center justify-between gap-4"
+                >
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">{invite.event_name}</p>
+                    <p className="text-xs text-brand-700 mt-0.5">
+                      Invited by <strong>{invite.invited_by_name}</strong>
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    loading={acceptingId === invite.id}
+                    onClick={() => handleAcceptInvite(invite.token, invite.id)}
+                  >
+                    Accept
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* My Events */}
         <section>
           <div className="flex items-center justify-between mb-6">

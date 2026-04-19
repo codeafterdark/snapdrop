@@ -27,3 +27,12 @@ class InviteInfo(BaseModel):
     event_name: str
     invited_by_name: str
     status: str  # pending | accepted
+
+
+class PendingInvitePublic(BaseModel):
+    """A pending invite addressed to the currently logged-in user."""
+    id: uuid.UUID
+    token: str
+    event_id: uuid.UUID
+    event_name: str
+    invited_by_name: str

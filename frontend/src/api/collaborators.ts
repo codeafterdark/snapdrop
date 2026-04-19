@@ -18,6 +18,14 @@ export interface InviteInfo {
   status: "pending" | "accepted";
 }
 
+export interface PendingInvite {
+  id: string;
+  token: string;
+  event_id: string;
+  event_name: string;
+  invited_by_name: string;
+}
+
 export const collaboratorsApi = {
   invite: (eventId: string, email: string) =>
     apiClient
@@ -31,6 +39,9 @@ export const collaboratorsApi = {
 
   remove: (eventId: string, collaboratorId: string) =>
     apiClient.delete(`/api/v1/events/${eventId}/collaborators/${collaboratorId}`),
+
+  listPending: () =>
+    apiClient.get<PendingInvite[]>("/api/v1/invites/pending").then((r) => r.data),
 
   getInvite: (token: string) =>
     apiClient.get<InviteInfo>(`/api/v1/invites/${token}`).then((r) => r.data),

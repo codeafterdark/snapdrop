@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.api.deps import CurrentUser, DB
 from app.models.collaborator import EventCollaborator
 from app.models.event import Event
-from app.schemas.collaborator import CollaboratorPublic, InviteCreate, InviteInfo
+from app.schemas.collaborator import CollaboratorPublic, InviteCreate, InviteInfo, PendingInvitePublic
 from app.services import email_service
 
 router = APIRouter(tags=["collaborators"])
@@ -141,6 +141,29 @@ async def remove_collaborator(
 
     await db.delete(collab)
     await db.commit()
+
+
+# ── Pending invites for logged-in user ────────────────────────────────────────
+
+@router.get("/invites/pending", response_model=list[PendingInvitePublic])
+async def list_pending_invites(current_user: CurrentUser, db: DB):
+    """Return all pending invites addressed to the current user's email."""
+    result = await db.execute(
+        select(EventCollaborator)
+        .options(selectinload(EventCollaborator.event), selectinload(EventCollaborator.invited_by))
+        .where(EventCollaborator.invited_email == current_user.email.lower())
+        .where(EventCollaborator.status == "pending")
+    )
+    return [
+        PendingInvitePublic(
+            id=c.id,
+            token=c.invite_token,
+            event_id=c.event_id,
+            event_name=c.event.name,
+            invited_by_name=c.invited_by.display_name or c.invited_by.email,
+        )
+        for c in result.scalars().all()
+    ]
 
 
 # ── Public invite endpoints ────────────────────────────────────────────────────
