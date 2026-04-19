@@ -24,7 +24,9 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+        skipWaiting: true,
+        clientsClaim: true,
+        globPatterns: ["**/*.{js,css,ico,png,svg}"],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.+\.r2\.cloudflarestorage\.com\/.+/,
