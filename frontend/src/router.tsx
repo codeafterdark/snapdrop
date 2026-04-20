@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
+import { LandingPage } from "@/pages/LandingPage";
 import { LoginPage } from "@/pages/admin/LoginPage";
 import { DashboardPage } from "@/pages/admin/DashboardPage";
 import { NewEventPage } from "@/pages/admin/NewEventPage";
@@ -10,7 +11,7 @@ import { ThankYouPage } from "@/pages/attendee/ThankYouPage";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 
 export const router = createBrowserRouter([
-  { path: "/", element: <Navigate to="/admin/dashboard" replace /> },
+  { path: "/", element: <LandingPage /> },
 
   // Admin routes (protected)
   { path: "/admin/login", element: <LoginPage /> },
@@ -34,6 +35,6 @@ export const router = createBrowserRouter([
   { path: "/e/:slug/camera", element: <CameraPage /> },
   { path: "/e/:slug/done", element: <ThankYouPage /> },
 
-  // Catch-all
+  // Catch-all → landing page
   { path: "*", element: <Navigate to="/" replace /> },
 ]);
