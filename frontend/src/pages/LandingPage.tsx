@@ -1,8 +1,16 @@
 import { useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 export function LandingPage() {
+  const { session, loading } = useAuth();
+  const navigate = useNavigate();
   const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // If the user is already signed in (e.g. OAuth callback landed here), send them straight to the dashboard
+  useEffect(() => {
+    if (!loading && session) navigate("/admin/dashboard", { replace: true });
+  }, [session, loading, navigate]);
 
   useEffect(() => {
     observerRef.current = new IntersectionObserver(
